@@ -1,0 +1,78 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+
+public class TankAI : MonoBehaviour
+{
+    public Transform pointA;
+    public Transform pointB;
+    public NavMeshAgent navMeshAgent;
+
+    private GameObject player;
+    private Animator animator;
+    private Ray ray;
+    private RaycastHit hit;
+    private float maxDistanceToCheck = 6.0f;
+    private float currentDistance;
+    private Vector3 checkDierection;
+    private int currentTarget;
+    private float distanceFromTarget;
+    private Transform[] waypoints = null;
+
+    private void Awake()
+    {
+        player = GameObject.FindWithTag("Player");
+        animator = gameObject.GetComponent<Animator>();
+        pointA = GameObject.Find("P1").transform;
+        pointB = GameObject.Find("P2").transform;
+        navMeshAgent = gameObject.GetComponent<NavMeshAgent>();
+        waypoints = new Transform[2] { pointA, pointB };
+        currentTarget = 0;
+        navMeshAgent.SetDestination(waypoints[currentTarget].position);
+    }
+
+    private void FixedUpdate()
+    {
+        currentDistance = Vector3.Distance(player.transform.position, transform.position);
+        animator.SetFloat("distanceFromPlayer", currentDistance);
+        checkDierection = player.transform.position - transform.position;
+        ray = new Ray(transform.position, checkDierection);
+
+        Vector3 drawDirection = maxDistanceToCheck * checkDierection.normalized;
+        Debug.DrawRay(transform.position, drawDirection, Color.red);
+
+        if (Physics.Raycast(ray, out hit, maxDistanceToCheck))
+        {
+            if (hit.collider.gameObject == player)
+                animator.SetBool("isPlayerVisible", true);
+            else
+                animator.SetBool("isPlayerVisible", false);
+        }
+        else
+        {
+            animator.SetBool("isPlayerVisible", false);
+        }
+        distanceFromTarget = Vector3.Distance(waypoints[currentTarget].position, transform.position);
+        animator.SetFloat("distanceFromWaypoint", distanceFromTarget);
+    }
+
+    public void SetNextPoint()
+    {
+        switch (currentTarget)
+        {
+            case 0:
+                currentTarget = 1;
+                break;
+            case 1:
+                currentTarget = 0;
+                break;
+        }
+        navMeshAgent.SetDestination(waypoints[currentTarget].position);
+    }
+
+    public void ChasePlayer()
+    {
+        navMeshAgent.SetDestination(player.transform.position);
+    }
+}
